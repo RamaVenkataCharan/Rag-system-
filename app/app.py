@@ -3,6 +3,7 @@ import time
 import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFDirectoryLoader
+from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_objectbox.vectorstores import ObjectBox
 from langchain_core.prompts import ChatPromptTemplate
 from utils import groq_llm, huggingface_instruct_embedding
@@ -17,6 +18,9 @@ prompt = ChatPromptTemplate.from_template(
     Questions: {input}
     """
 )
+
+def get_document_chain():
+    return create_stuff_documents_chain(groq_llm(), prompt)
 
 def vector_embedding():
     if 'vectors' not in st.session_state:
