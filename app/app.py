@@ -4,7 +4,19 @@ import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_objectbox.vectorstores import ObjectBox
+from langchain_core.prompts import ChatPromptTemplate
 from utils import groq_llm, huggingface_instruct_embedding
+
+prompt = ChatPromptTemplate.from_template(
+    """
+    Answer the questions based on the provided context only.
+    Please provide the most accurate response based on the question
+    <context>
+    {context}
+    <context>
+    Questions: {input}
+    """
+)
 
 def vector_embedding():
     if 'vectors' not in st.session_state:
