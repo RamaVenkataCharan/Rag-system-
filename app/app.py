@@ -9,6 +9,8 @@ from langchain_objectbox.vectorstores import ObjectBox
 from langchain_core.prompts import ChatPromptTemplate
 from utils import groq_llm, huggingface_instruct_embedding
 
+st.title('Objectbox VectorstoreDB with LLAMA3')
+
 prompt = ChatPromptTemplate.from_template(
     """
     Answer the questions based on the provided context only.
@@ -19,11 +21,6 @@ prompt = ChatPromptTemplate.from_template(
     Questions: {input}
     """
 )
-
-def create_rag_chain():
-    document_chain = create_stuff_documents_chain(groq_llm(), prompt)
-    retriever = st.session_state.vectors.as_retriever()
-    return create_retrieval_chain(retriever, document_chain)
 
 def vector_embedding():
     if 'vectors' not in st.session_state:
@@ -38,3 +35,7 @@ def vector_embedding():
             embedding_dimensions=768,
             db_directory='objectbox'
         )
+
+if st.button('Embedd Documents'):
+    vector_embedding()
+    st.write('ObjectBox Database is ready. You can now enter your question')
