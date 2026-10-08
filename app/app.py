@@ -39,3 +39,13 @@ def vector_embedding():
 if st.button('Embedd Documents'):
     vector_embedding()
     st.write('ObjectBox Database is ready. You can now enter your question')
+
+user_input = st.text_input('Enter your question from documents')
+
+if user_input:
+    document_chain = create_stuff_documents_chain(groq_llm(), prompt)
+    retriever = st.session_state.vectors.as_retriever()
+    retrieval_chain = create_retrieval_chain(retriever, document_chain)
+
+    response = retrieval_chain.invoke({'input': user_input})
+    st.write(response['answer'])
