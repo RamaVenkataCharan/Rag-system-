@@ -46,6 +46,8 @@ if user_input:
     document_chain = create_stuff_documents_chain(groq_llm(), prompt)
     retriever = st.session_state.vectors.as_retriever()
     retrieval_chain = create_retrieval_chain(retriever, document_chain)
+    start = time.process_time()
 
     response = retrieval_chain.invoke({'input': user_input})
     st.write(response['answer'])
+    st.write(f'response time: {(time.process_time() - start):.2f} secs')
