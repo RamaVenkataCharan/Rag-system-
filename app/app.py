@@ -51,3 +51,10 @@ if user_input:
     response = retrieval_chain.invoke({'input': user_input})
     st.write(response['answer'])
     st.write(f'response time: {(time.process_time() - start):.2f} secs')
+
+    # With a streamlit expander
+    with st.expander("Document Similarity Search"):
+        # Find the relevant chunks
+        for i, doc in enumerate(response["context"]):
+            st.write(doc.page_content)
+            st.write("--------------------------------")
