@@ -9,6 +9,8 @@ from langchain_objectbox.vectorstores import ObjectBox
 from langchain_core.prompts import ChatPromptTemplate
 from utils import groq_llm, huggingface_instruct_embedding
 
+st.set_page_config(layout='wide', page_title="Objectbox and Langchain")
+
 st.title('Objectbox VectorstoreDB with LLAMA3')
 
 prompt = ChatPromptTemplate.from_template(
