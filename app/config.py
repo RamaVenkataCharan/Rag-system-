@@ -3,7 +3,10 @@ from dotenv import load_dotenv
 
 # load dotenv
 def load_config():
-    return load_dotenv()
+    load_dotenv()
+    root_env = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+    if os.path.exists(root_env):
+        load_dotenv(root_env)
 
 # function to get groq api key
 def get_groq_api():
