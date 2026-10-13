@@ -3,6 +3,7 @@ import sys
 import time
 import streamlit as st
 
+# Ensure current app directory is in sys.path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -13,6 +14,7 @@ from langchain_objectbox.vectorstores import ObjectBox
 from langchain_core.prompts import ChatPromptTemplate
 from utils import groq_llm, huggingface_instruct_embedding
 
+# Base paths for census data and objectbox
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, 'us-census-data')
 DB_DIR = os.path.join(BASE_DIR, 'objectbox')
@@ -47,39 +49,52 @@ if 'vectors' not in st.session_state:
             pass
 
 def vector_embedding():
-    st.session_state.embeddings = huggingface_instruct_embedding()
-    st.session_state.loader = PyPDFDirectoryLoader(DATA_DIR)
-    st.session_state.docs = st.session_state.loader.load()
-    st.session_state.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    st.session_state.final_documents = st.session_state.text_splitter.split_documents(st.session_state.docs[:200])
-    st.session_state.vectors = ObjectBox.from_documents(
-        st.session_state.final_documents,
-        st.session_state.embeddings,
-        embedding_dimensions=768,
-        db_directory=DB_DIR
-    )
+    with st.spinner("Processing documents and generating embeddings..."):
+        st.session_state.embeddings = huggingface_instruct_embedding()
+        st.session_state.loader = PyPDFDirectoryLoader(DATA_DIR)
+        st.session_state.docs = st.session_state.loader.load()
+        st.session_state.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        st.session_state.final_documents = st.session_state.text_splitter.split_documents(st.session_state.docs[:200])
+        st.session_state.vectors = ObjectBox.from_documents(
+            st.session_state.final_documents,
+            st.session_state.embeddings,
+            embedding_dimensions=768,
+            db_directory=DB_DIR
+        )
 
-if st.button('Embed Documents'):
-    with st.spinner("Embedding documents into ObjectBox..."):
+col1, col2 = st.columns([1, 4])
+with col1:
+    if st.button('Embed Documents'):
         vector_embedding()
-    st.success('ObjectBox Database is ready. You can now enter your question')
+        st.success('ObjectBox Database is ready. You can now enter your question.')
 
-user_input = st.text_input('Enter your question from documents')
+if 'vectors' in st.session_state:
+    st.info('ObjectBox Vector Store is loaded and ready.')
+else:
+    st.warning('ObjectBox database is not loaded yet. Click "Embed Documents" above to initialize.')
+
+user_input = st.text_input('Enter your question from documents:')
 
 if user_input:
     if 'vectors' not in st.session_state:
-        st.warning('Please click "Embed Documents" first to initialize the database.')
+        st.error("Please click 'Embed Documents' first to initialize the vector database!")
     else:
-        document_chain = create_stuff_documents_chain(groq_llm(), prompt)
-        retriever = st.session_state.vectors.as_retriever()
-        retrieval_chain = create_retrieval_chain(retriever, document_chain)
-        start = time.process_time()
+        try:
+            document_chain = create_stuff_documents_chain(groq_llm(), prompt)
+            retriever = st.session_state.vectors.as_retriever()
+            retrieval_chain = create_retrieval_chain(retriever, document_chain)
+            start = time.process_time()
 
-        response = retrieval_chain.invoke({'input': user_input})
-        st.write(response['answer'])
-        st.write(f'Response time: {(time.process_time() - start):.2f} secs')
+            response = retrieval_chain.invoke({'input': user_input})
+            elapsed = time.process_time() - start
 
-        with st.expander("Document Similarity Search"):
-            for i, doc in enumerate(response.get("context", [])):
-                st.write(doc.page_content)
-                st.write("--------------------------------")
+            st.write(response['answer'])
+            st.caption(f'Response time: {elapsed:.2f} seconds')
+
+            with st.expander("Document Similarity Search (Context Chunks)"):
+                for i, doc in enumerate(response.get("context", [])):
+                    st.markdown(f"**Chunk {i+1}:**")
+                    st.write(doc.page_content)
+                    st.divider()
+        except Exception as e:
+            st.error(f"Error generating answer: {str(e)}")
