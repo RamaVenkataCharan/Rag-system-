@@ -1,5 +1,11 @@
 # End-to-End RAG System using ObjectBox and LangChain
 
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![LangChain](https://img.shields.io/badge/LangChain-Framework-1C3C3C?style=flat)](https://www.langchain.com/)
+[![Groq](https://img.shields.io/badge/Groq-Llama3--8B-f55036?style=flat)](https://groq.com/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-UI-FF4B4B?style=flat&logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 An on-device, high-performance Retrieval-Augmented Generation (RAG) system built with **LangChain**, **ObjectBox Vector Database**, **Groq (LLaMA3-8B)**, and **Streamlit**.
 
 This application allows users to ask questions and retrieve accurate, context-grounded insights from US Census demographic PDF reports directly on-device with sub-second retrieval and LLM response times.
