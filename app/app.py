@@ -17,14 +17,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, 'us-census-data')
 DB_DIR = os.path.join(BASE_DIR, 'objectbox')
 
-st.set_page_config(layout='wide', page_title="Objectbox and Langchain")
+st.set_page_config(layout='wide', page_title="Objectbox and Langchain RAG")
 
 st.title('Objectbox VectorstoreDB with LLAMA3')
 
 prompt = ChatPromptTemplate.from_template(
     """
     Answer the questions based on the provided context only.
-    Please provide the most accurate response based on the question
+    Please provide the most accurate response based on the question.
     <context>
     {context}
     <context>
@@ -32,37 +32,54 @@ prompt = ChatPromptTemplate.from_template(
     """
 )
 
-def vector_embedding():
-    if 'vectors' not in st.session_state:
-        st.session_state.embeddings = huggingface_instruct_embedding()
-        st.session_state.loader = PyPDFDirectoryLoader(DATA_DIR)
-        st.session_state.docs = st.session_state.loader.load()
-        st.session_state.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-        st.session_state.final_documents = st.session_state.text_splitter.split_documents(st.session_state.docs[:200])
-        st.session_state.vectors = ObjectBox.from_documents(
-            st.session_state.final_documents,
-            st.session_state.embeddings,
-            embedding_dimensions=768,
-            db_directory=DB_DIR
-        )
+# Auto-load existing ObjectBox vectorstore if present on disk
+if 'vectors' not in st.session_state:
+    if os.path.exists(DB_DIR) and os.path.exists(os.path.join(DB_DIR, 'data.mdb')):
+        try:
+            embeddings = huggingface_instruct_embedding()
+            st.session_state.embeddings = embeddings
+            st.session_state.vectors = ObjectBox(
+                embedding=embeddings,
+                embedding_dimensions=768,
+                db_directory=DB_DIR
+            )
+        except Exception:
+            pass
 
-if st.button('Embedd Documents'):
-    vector_embedding()
-    st.write('ObjectBox Database is ready. You can now enter your question')
+def vector_embedding():
+    st.session_state.embeddings = huggingface_instruct_embedding()
+    st.session_state.loader = PyPDFDirectoryLoader(DATA_DIR)
+    st.session_state.docs = st.session_state.loader.load()
+    st.session_state.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    st.session_state.final_documents = st.session_state.text_splitter.split_documents(st.session_state.docs[:200])
+    st.session_state.vectors = ObjectBox.from_documents(
+        st.session_state.final_documents,
+        st.session_state.embeddings,
+        embedding_dimensions=768,
+        db_directory=DB_DIR
+    )
+
+if st.button('Embed Documents'):
+    with st.spinner("Embedding documents into ObjectBox..."):
+        vector_embedding()
+    st.success('ObjectBox Database is ready. You can now enter your question')
 
 user_input = st.text_input('Enter your question from documents')
 
 if user_input:
-    document_chain = create_stuff_documents_chain(groq_llm(), prompt)
-    retriever = st.session_state.vectors.as_retriever()
-    retrieval_chain = create_retrieval_chain(retriever, document_chain)
-    start = time.process_time()
+    if 'vectors' not in st.session_state:
+        st.warning('Please click "Embed Documents" first to initialize the database.')
+    else:
+        document_chain = create_stuff_documents_chain(groq_llm(), prompt)
+        retriever = st.session_state.vectors.as_retriever()
+        retrieval_chain = create_retrieval_chain(retriever, document_chain)
+        start = time.process_time()
 
-    response = retrieval_chain.invoke({'input': user_input})
-    st.write(response['answer'])
-    st.write(f'response time: {(time.process_time() - start):.2f} secs')
+        response = retrieval_chain.invoke({'input': user_input})
+        st.write(response['answer'])
+        st.write(f'Response time: {(time.process_time() - start):.2f} secs')
 
-    with st.expander("Document Similarity Search"):
-        for i, doc in enumerate(response["context"]):
-            st.write(doc.page_content)
-            st.write("--------------------------------")
+        with st.expander("Document Similarity Search"):
+            for i, doc in enumerate(response.get("context", [])):
+                st.write(doc.page_content)
+                st.write("--------------------------------")
