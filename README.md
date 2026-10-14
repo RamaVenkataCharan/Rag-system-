@@ -154,13 +154,6 @@ Rag-system-/
 
 ---
 
-## Acknowledgments
-
-- [ObjectBox Database](https://objectbox.io/)
-- [LangChain Framework](https://www.langchain.com/)
-- [Groq AI](https://groq.com/)
-- [Krish Naik](https://www.youtube.com/@krishnaik06)
-
 ---
 
 ## License
